@@ -42,8 +42,9 @@ author Tiny Jiang
 
     _.parseSC = function(fun, id) {
         var clz;
-        if !SC.isType(fun, 'Function')
-        return
+        if (!SC.isType(fun, 'Function')) {
+            return
+        }
         clz = {
             id: _.getID(id),
             construcotr: fun,
@@ -64,12 +65,12 @@ author Tiny Jiang
      */
     SC.clone = function(obj, isDeep) {
         var i, o;
-        isDeep = _.isType(isDeep, 'Boolean') && isDeep;
-        if (_.isType(obj, 'Object') || _.isType(obj, 'Array')) {
-            o = _.isType(obj, 'Object') ? {} : [];
+        isDeep = SC.isType(isDeep, 'Boolean') && isDeep;
+        if (SC.isType(obj, 'Object') || SC.isType(obj, 'Array')) {
+            o = SC.isType(obj, 'Object') ? {} : [];
             for (i in obj) {
                 if (obj.hasOwnProperty(i)) {
-                    o[i] = isDeep ? _.clone(obj[i]) : obj[i];
+                    o[i] = isDeep ? SC.clone(obj[i]) : obj[i];
                 }
             }
         } else {
@@ -78,10 +79,27 @@ author Tiny Jiang
         return o;
     };
 
+    SC.apply = function(ori, obj) {
+        var i;
+        ori = SC.isType(ori, 'Object') ? ori : {};
+        if (SC.isType(obj, 'Object')) {
+            for (i in obj) {
+                if (obj.hasOwnProperty(i)) {
+                    ori[i] = SC.clone(obj[i]);
+                }
+            }
+        }
+        return ori;
+    };
+
     /**/
     SC.define = function(parent, conf, initial) {
         var clz, _proto, c_obj = {},
             cst, i;
+        if (SC.isType(parent, 'Function')) {
+            parent = _.parseSC(parent);
+        }
+
         if (!_.isSC(parent)) {
             conf = parent;
             initial = conf;
@@ -104,14 +122,12 @@ author Tiny Jiang
         }
 
 
-        cst = function() {
+        cst = function(custom) {
             var me = this,
-                i;
-            for (i in c_obj) {
-                if (c_obj.hasOwnProperty(i)) {
-                    me[i] = SC.clone(c_obj[i]);
-                }
-            }
+                i, j;
+            parent && parent.construcotr.call(me);
+            SC.apply(me, c_obj);
+            SC.apply(me, custom);
             initial.call(me);
         };
         cst.prototype = _proto;
@@ -121,10 +137,8 @@ author Tiny Jiang
     };
 
     SC.create = function(clz, conf) {
-
-
+        return _.isSC(clz) ? (new clz.construcotr(conf)) : conf;
     };
-
-
-
+    typeof window != 'undefined' && SC.isType(window, 'global') && (window.SC = SC) //浏览器环境
+    typeof module != 'undefined' && SC.isType(module, 'Object') && SC.isType(exports, 'Object') && (module.exports = SC) //node 环境
 })()
