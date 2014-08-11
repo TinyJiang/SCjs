@@ -7,7 +7,7 @@ author Tiny Jiang
     var SC = {},
         _ = {},
         classCache = {},
-        rootObj,
+        rootPrototype,
         count = 0,
         errs;
 
@@ -27,16 +27,17 @@ author Tiny Jiang
      *
      */
     _.isSC = function(clz) {
-        return SC.isType(clz, 'Object') && classCache[clz.id] == clz;
+        return SC.isType(clz, 'Object') && !SC.isType(classCache[clz.id], 'undefined') && SC.isType(clz.SC_constructor, 'Function');
     };
 
     _.getID = function(id) {
-        id = SC.isType(id, 'String') ? id : ('SC-' + (count++));
-        if (classCache[id]) {
-            throw errs.idExsist(id)
+        var _id, idIndex = count++;
+        _id = SC.isType(id, 'String') ? id : ('SC-' + idIndex);
+        if (classCache[_id]) {
+            throw errs.idExsist(_id)
             return
         }
-        return id;
+        return _id;
     }
 
 
@@ -47,7 +48,7 @@ author Tiny Jiang
         }
         clz = {
             id: _.getID(id),
-            construcotr: fun,
+            SC_constructor: fun,
         };
         classCache[id] = clz;
         return clz;
@@ -57,7 +58,11 @@ author Tiny Jiang
      *类型验证
      */
     SC.isType = function(obj, type) {
-        return type == 'undefined' ? (typeof obj == type) : {}.toString.call(obj) == ('[object ' + type + ']');
+        var rs = {}.toString.call(obj) == ('[object ' + type + ']')
+        if (type == 'global' && !rs) {
+            return SC.isType(obj, 'Window');
+        }
+        return rs;
     };
 
     /**
@@ -108,12 +113,12 @@ author Tiny Jiang
         conf = SC.isType(conf, 'Object') ? conf : {};
         initial = SC.isType(initial, 'Function') ? initial : function() {};
 
-        _proto = SC.clone((parent && _.isSC(parent)) ? paernt.construcotr.prototype : rootPrototype); //没有父节点时使用根节点为prototype
+        _proto = SC.clone((parent && _.isSC(parent)) ? parent.SC_constructor.prototype : rootPrototype); //没有父节点时使用根节点为prototype
 
         for (i in conf) {
             if (conf.hasOwnProperty(i)) {
                 //将function放入prototype中，其余放入待初始化对象配置中
-                if (SC.isType(conf[i], 'function')) {
+                if (SC.isType(conf[i], 'Function')) {
                     _proto[i] = conf[i];
                 } else {
                     c_obj[i] = conf[i];
@@ -125,19 +130,26 @@ author Tiny Jiang
         cst = function(custom) {
             var me = this,
                 i, j;
-            parent && parent.construcotr.call(me);
+            parent && parent.SC_constructor.call(me);
             SC.apply(me, c_obj);
             SC.apply(me, custom);
             initial.call(me);
         };
         cst.prototype = _proto;
-        cst.prototype.construcotr = cst;
+        cst.prototype.constructor = cst;
 
+        if (conf.id && !SC.isType(conf.id, 'String')) {
+            throw errs.idType();
+        }
         return _.parseSC(cst, conf.id)
     };
 
     SC.create = function(clz, conf) {
-        return _.isSC(clz) ? (new clz.construcotr(conf)) : conf;
+        return _.isSC(clz) ? (new clz.SC_constructor(conf)) : conf;
+    };
+
+    SC.isInstanceof = function(obj, clz) {
+        return SC.isType(obj, 'Object') && _.isSC(clz) && obj instanceof clz.SC_constructor;
     };
     typeof window != 'undefined' && SC.isType(window, 'global') && (window.SC = SC) //浏览器环境
     typeof module != 'undefined' && SC.isType(module, 'Object') && SC.isType(exports, 'Object') && (module.exports = SC) //node 环境
