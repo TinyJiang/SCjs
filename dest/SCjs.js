@@ -1,8 +1,3 @@
-/**
- * SCjs
- * Simple Class System for JavaScript
- * Author Tiny Jiang
- */
 (function() {
     var SC = {},
         _ = {},

@@ -1,5 +1,5 @@
 (function() {
-    //var SC = require('../src/SCjs');
+    var SC = require('../src/SCjs');
 
     var Root = SC.define({
         name: 'root',
