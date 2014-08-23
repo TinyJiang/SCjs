@@ -1,7 +1,7 @@
 # SCjs - A Simple Class System Library for JavaScript 
 
 > * Designed for JavaScript OOP
-> * Easy to use
+> * Easy to use,less than 5 methods
 > * Only 2KB
 
 ---
